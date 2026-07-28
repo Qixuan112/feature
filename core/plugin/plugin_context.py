@@ -22,6 +22,7 @@ if TYPE_CHECKING:
     from .plugin_registry import PluginManager
     from core.message_manager import MessageProcessor
     from core.db.service import DatabaseService
+    from core.subagent.manager import SubAgentManager
 
 
 @dataclass
@@ -47,6 +48,8 @@ class PluginContext:
     message_processor: MessageProcessor
 
     plugin_mgr: Optional[PluginManager] = None
+
+    subagent_manager: Optional["SubAgentManager"] = None
 
     def get_plugin_data_dir(self):
         base_dir = get_data_path() / "plugin_data"

@@ -71,6 +71,8 @@ class KiraLifecycle:
 
         self.skills_manager: Optional[SkillsManager] = None
 
+        self.subagent_manager = None
+
         self.telemetry_client: Optional[TelemetryClient] = None
 
         self.tasks: list[asyncio.Task] = []
@@ -200,6 +202,21 @@ class KiraLifecycle:
         self.event_bus = EventBus(self.stats, event_queue, self.message_processor, db=self.db_service)
         self.message_processor.event_bus = self.event_bus
 
+        # ====== init SubAgent system ======
+        try:
+            from core.subagent import SubAgentManager, CallSubAgentTool
+
+            self.subagent_manager = SubAgentManager(self.provider_manager, self.llm_api)
+            call_tool = CallSubAgentTool(self.subagent_manager)
+            self.llm_api.register_tool(
+                name=call_tool.name,
+                description=call_tool.description,
+                parameters=call_tool.parameters,
+                func=call_tool.execute,
+            )
+        except Exception as e:
+            logger.error(f"Failed to initialize SubAgent system: {e}")
+
         # ====== init plugin system ======
         self.plugin_context = PluginContext(
             db=self.db_service,
@@ -211,7 +228,8 @@ class KiraLifecycle:
             persona_mgr=self.persona_manager,
             sticker_manager=self.sticker_manager,
             session_mgr=self.session_manager,
-            message_processor=self.message_processor
+            message_processor=self.message_processor,
+            subagent_manager=self.subagent_manager,
         )
 
         self.plugin_manager = PluginManager(self.plugin_context)
