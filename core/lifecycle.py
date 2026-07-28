@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import asyncio
 import os
 import time
-from typing import Optional
+from typing import Optional, TYPE_CHECKING
 
 from .logging_manager import get_logger, setup_logging
 from .config import KiraConfig
@@ -26,6 +28,9 @@ from core.telemetry import TelemetryClient
 from core.db.db_mgr import DatabaseManager
 from core.db.service import DatabaseService
 from core.db.migrate_to_db import run_migrations
+
+if TYPE_CHECKING:
+    from core.subagent.manager import SubAgentManager
 
 
 logger = get_logger("lifecycle", "blue")
@@ -71,7 +76,7 @@ class KiraLifecycle:
 
         self.skills_manager: Optional[SkillsManager] = None
 
-        self.subagent_manager = None
+        self.subagent_manager: Optional[SubAgentManager] = None
 
         self.telemetry_client: Optional[TelemetryClient] = None
 
@@ -203,19 +208,16 @@ class KiraLifecycle:
         self.message_processor.event_bus = self.event_bus
 
         # ====== init SubAgent system ======
-        try:
-            from core.subagent import SubAgentManager, CallSubAgentTool
+        from core.subagent import SubAgentManager, CallSubAgentTool
 
-            self.subagent_manager = SubAgentManager(self.provider_manager, self.llm_api)
-            call_tool = CallSubAgentTool(self.subagent_manager)
-            self.llm_api.register_tool(
-                name=call_tool.name,
-                description=call_tool.description,
-                parameters=call_tool.parameters,
-                func=call_tool.execute,
-            )
-        except Exception as e:
-            logger.error(f"Failed to initialize SubAgent system: {e}")
+        self.subagent_manager = SubAgentManager(self.provider_manager, self.llm_api)
+        call_tool = CallSubAgentTool(self.subagent_manager)
+        self.llm_api.register_tool(
+            name=call_tool.name,
+            description=call_tool.description,
+            parameters=call_tool.parameters,
+            func=call_tool.execute,
+        )
 
         # ====== init plugin system ======
         self.plugin_context = PluginContext(
