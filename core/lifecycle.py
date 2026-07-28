@@ -209,8 +209,12 @@ class KiraLifecycle:
 
         # ====== init SubAgent system ======
         from core.subagent import SubAgentManager, CallSubAgentTool
+        from core.subagent.builtin import BUILTIN_SUBAGENTS
 
         self.subagent_manager = SubAgentManager(self.provider_manager, self.llm_api)
+        for cfg in BUILTIN_SUBAGENTS:
+            self.subagent_manager.register(cfg)
+
         call_tool = CallSubAgentTool(self.subagent_manager)
         self.llm_api.register_tool(
             name=call_tool.name,
